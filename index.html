@@ -475,7 +475,29 @@
                 const isTradingTime = await DataService.isFundTradingTime();
                 if (!isTradingTime) {
                     refreshCountdown = 10;
-                    $('#refreshAllBtn span:first').text("未开盘");
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    let statusText = "";
+                    const isBeforeOpen =
+                        (hours < 9) ||                              // 9点前
+                        (hours === 9 && minutes < 30) ||            // 9点但不到30分
+                        (hours > 11 && hours < 13) ||               // 11:30-13:00 午休时段（小时维度）
+                        (hours === 11 && minutes > 30 && hours < 13); // 11:30-13:00 午休时段（分钟维度）
+                    const isTrading =
+                        // 上午盘：9:30-11:30
+                        ((hours === 9 && minutes >= 30) || (hours > 9 && hours < 11) || (hours === 11 && minutes <= 30)) ||
+                        // 下午盘：13:00-15:00
+                        ((hours === 13 && minutes >= 0) || (hours > 13 && hours < 15) || (hours === 15 && minutes <= 0));
+                    const isAfterClose = hours > 15 || (hours === 15 && minutes > 0);
+                    if (isBeforeOpen) {
+                        statusText = "未开盘";
+                    } else if (isAfterClose) {
+                        statusText = "已收盘,请等待基金公司更新最新净值";
+                    } else if (isTrading) {
+                        statusText = "交易中"; // 可选：若不需要显示“交易中”，可留空或替换为其他内容
+                    }
+                    $('#refreshAllBtn span:first').text(statusText);
                     // 2. 隐藏倒计时元素（同时移除原有的"未开盘"文字设置）
                     $('#refreshCountdown').addClass('hidden');
                     isAutoRefreshing = false;
@@ -831,8 +853,29 @@
                         const isTradingTime = await DataService.isFundTradingTime();
                         if (!isTradingTime) {
                             refreshCountdown = 10;
-                            $('#refreshAllBtn span:first').text("未开盘");
-                            // 2. 隐藏倒计时元素（同时移除原有的"未开盘"文字设置）
+                            const now = new Date();
+                            const hours = now.getHours();
+                            const minutes = now.getMinutes();
+                            let statusText = "";
+                            const isBeforeOpen =
+                                (hours < 9) ||                              // 9点前
+                                (hours === 9 && minutes < 30) ||            // 9点但不到30分
+                                (hours > 11 && hours < 13) ||               // 11:30-13:00 午休时段（小时维度）
+                                (hours === 11 && minutes > 30 && hours < 13); // 11:30-13:00 午休时段（分钟维度）
+                            const isTrading =
+                                // 上午盘：9:30-11:30
+                                ((hours === 9 && minutes >= 30) || (hours > 9 && hours < 11) || (hours === 11 && minutes <= 30)) ||
+                                // 下午盘：13:00-15:00
+                                ((hours === 13 && minutes >= 0) || (hours > 13 && hours < 15) || (hours === 15 && minutes <= 0));
+                            const isAfterClose = hours > 15 || (hours === 15 && minutes > 0);
+                            if (isBeforeOpen) {
+                                statusText = "未开盘";
+                            } else if (isAfterClose) {
+                                statusText = "已收盘,请等待基金公司更新最新净值";
+                            } else if (isTrading) {
+                                statusText = "交易中"; // 可选：若不需要显示“交易中”，可留空或替换为其他内容
+                            }
+                            $('#refreshAllBtn span:first').text(statusText);                            // 2. 隐藏倒计时元素（同时移除原有的"未开盘"文字设置）
                             $('#refreshCountdown').addClass('hidden');
                             isAutoRefreshing = false;
                             PageManager.hideLoading();
@@ -1282,14 +1325,14 @@
                 const isTradingTime = await this.isFundTradingTime();
                 if (!isTradingTime) {
                     await new Promise(resolve => setTimeout(resolve, 1000));
-                    let lsjzListSessiom = sessionStorage.getItem("lsjzListElement_" + fundCode);
+                    // let lsjzListSessiom = sessionStorage.getItem("lsjzListElement_" + fundCode);
                     let lsjzListElement = null;
-                    if (lsjzListSessiom) {
-                        lsjzListElement = JSON.parse(lsjzListSessiom)
-                        console.log("缓存lsjzListSessiom")
-                    } else {
+                    // if (lsjzListSessiom) {
+                    //     lsjzListElement = JSON.parse(lsjzListSessiom)
+                    //     console.log("缓存lsjzListSessiom")
+                    // } else {
                         lsjzListElement = await this.fetchNetValueHistoryFast(fundCode); // 等待请求完成
-                    }
+                    // }
                     if (lsjzListElement) {
                         sessionStorage.setItem("lsjzListElement_" + fundCode, JSON.stringify(lsjzListElement))
                         let jzzzl = parseFloat(lsjzListElement.changeRate);
@@ -1572,11 +1615,11 @@
 
         // 刷新所有数据按钮（修复：点击后重置自动刷新倒计时）
         $('#refreshAllBtn').on('click', async function () {
-            const isTradingTime = await DataService.isFundTradingTime();
-            if (!isTradingTime) {
-                PageManager.showToast('未开盘没有新数据需要更新', 'info');
-                return
-            }
+            // const isTradingTime = await DataService.isFundTradingTime();
+            // if (!isTradingTime) {
+            //     PageManager.showToast('未开盘没有新数据需要更新', 'info');
+            //     return
+            // }
             const funds = FundManager.loadFunds();
 
             if (funds.length === 0) {
